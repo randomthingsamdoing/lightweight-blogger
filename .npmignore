@@ -1,0 +1,4 @@
+test-app/
+*.tgz
+node_modules/
+dist/
