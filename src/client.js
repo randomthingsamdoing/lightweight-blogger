@@ -230,6 +230,15 @@ const ADMIN_STYLES = `
 .lb-saving-indicator.saved { color: var(--lb-success); }
 .switch-link { color: var(--lb-primary); cursor: pointer; text-decoration: none; font-weight: 500; }
 .switch-link:hover { text-decoration: underline; }
+.lb-quill-editor { background: white; border-radius: 10px; }
+.lb-ql-container { border: 2px solid var(--lb-border) !important; border-radius: 0 0 10px 10px !important; }
+.lb-ql-toolbar { border-radius: 10px 10px 0 0 !important; border: 2px solid var(--lb-border) !important; border-bottom: none !important; }
+.lb-ql-editor { min-height: 250px; font-family: inherit; font-size: 1rem; line-height: 1.6; }
+.lb-ql-editor.ql-blank::before { color: var(--lb-text-secondary); font-style: normal; }
+.ql-toolbar.ql-snow .ql-picker-label { padding: 2px 6px; }
+.ql-snow .ql-tooltip { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.ql-snow .ql-tooltip input[type="text"] { border-radius: 4px; border: 1px solid var(--lb-border); padding: 4px 8px; }
+.ql-snow .ql-tooltip a { color: var(--lb-primary); }
 `;
 
 function injectStyles() {
@@ -238,6 +247,17 @@ function injectStyles() {
   style.id = 'lb-admin-styles';
   style.textContent = ADMIN_STYLES;
   document.head.appendChild(style);
+  
+  if (!document.querySelector('link[href*="quill.snow"]')) {
+    const quillCSS = document.createElement('link');
+    quillCSS.rel = 'stylesheet';
+    quillCSS.href = 'https://cdn.quilljs.com/1.3.7/quill.snow.css';
+    document.head.appendChild(quillCSS);
+    
+    const quillJS = document.createElement('script');
+    quillJS.src = 'https://cdn.quilljs.com/1.3.7/quill.min.js';
+    document.head.appendChild(quillJS);
+  }
 }
 
 function renderLogin() {
@@ -424,8 +444,8 @@ function renderEditor(post = null, isNew = false) {
               <input type="text" id="lb-excerpt" value="${escapeHtml(post?.excerpt || '')}" placeholder="Brief summary for previews">
             </div>
             <div class="lb-form-group">
-              <label for="lb-content">Content</label>
-              <textarea id="lb-content" placeholder="Write your blog post content here...">${escapeHtml(post?.content || '')}</textarea>
+              <label>Content</label>
+              <div id="lb-quill-editor" class="lb-quill-editor">${post?.content || ''}</div>
             </div>
           </div>
         </div>
@@ -663,7 +683,6 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
   const backBtn = container.querySelector('#lb-back');
   const titleInput = container.querySelector('#lb-title');
   const slugInput = container.querySelector('#lb-slug');
-  const contentInput = container.querySelector('#lb-content');
   const excerptInput = container.querySelector('#lb-excerpt');
   const categoryInput = container.querySelector('#lb-category');
   const publishedInput = container.querySelector('#lb-published');
@@ -675,10 +694,64 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
   savedIndicator.textContent = '';
   saveBtn?.parentNode.insertBefore(savedIndicator, saveBtn.nextSibling);
   
+  let quillEditor = null;
+  
+  const initQuill = () => {
+    if (typeof Quill !== 'undefined') {
+      const editorContainer = container.querySelector('#lb-quill-editor');
+      if (editorContainer && !editorContainer.querySelector('.ql-container')) {
+        quillEditor = new Quill('#lb-quill-editor', {
+          theme: 'snow',
+          placeholder: 'Write your blog post content here...',
+          modules: {
+            toolbar: [
+              [{ 'header': [1, 2, 3, 4, false] }],
+              [{ 'font': [] }],
+              [{ 'size': ['small', false, 'large', 'huge'] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'color': [] }, { 'background': [] }],
+              [{ 'align': [] }],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              [{ 'indent': '-1'}, { 'indent': '+1' }],
+              ['link', 'image', 'blockquote', 'code-block'],
+              ['clean']
+            ]
+          }
+        });
+        
+        quillEditor.on('text-change', () => {
+          savedIndicator.textContent = 'Unsaved';
+          savedIndicator.className = 'lb-saving-indicator saving';
+        });
+      }
+    }
+  };
+  
+  const checkQuillAndInit = setInterval(() => {
+    if (typeof Quill !== 'undefined') {
+      initQuill();
+      clearInterval(checkQuillAndInit);
+    }
+  }, 100);
+  
+  const getQuillContent = () => {
+    if (quillEditor) {
+      return quillEditor.root.innerHTML;
+    }
+    const editorDiv = container.querySelector('#lb-quill-editor');
+    return editorDiv ? editorDiv.innerHTML : '';
+  };
+  
+  const setQuillContent = (html) => {
+    if (quillEditor && html) {
+      quillEditor.root.innerHTML = html;
+    }
+  };
+  
   const getFormData = () => ({
     title: titleInput?.value || '',
     slug: slugInput?.value || '',
-    content: contentInput?.value || '',
+    content: getQuillContent(),
     excerpt: excerptInput?.value || '',
     category: categoryInput?.value || '',
     published: publishedInput?.checked || false
@@ -705,14 +778,16 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
         const data = JSON.parse(draft);
         if (titleInput && !titleInput.value) titleInput.value = data.title || '';
         if (slugInput && !slugInput.value) slugInput.value = data.slug || '';
-        if (contentInput && !contentInput.value) contentInput.value = data.content || '';
+        if (data.content) setQuillContent(data.content);
         if (excerptInput && !excerptInput.value) excerptInput.value = data.excerpt || '';
         if (categoryInput && !categoryInput.value) categoryInput.value = data.category || '';
       } catch (e) {}
     }
   };
   
-  loadDraft();
+  setTimeout(() => {
+    loadDraft();
+  }, 300);
   
   let autosaveInterval;
   const startAutosave = () => {
@@ -743,7 +818,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       savedIndicator.className = 'lb-saving-indicator saving';
     });
     
-    [contentInput, excerptInput, categoryInput].forEach(input => {
+    [excerptInput, categoryInput].forEach(input => {
       if (input) {
         input.addEventListener('input', () => {
           savedIndicator.textContent = 'Unsaved';
@@ -772,7 +847,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
     saveBtn.addEventListener('click', async () => {
       const title = titleInput?.value;
       const slug = slugInput?.value;
-      const content = contentInput?.value;
+      const content = getQuillContent();
       const excerpt = excerptInput?.value;
       const category = categoryInput?.value;
       const published = publishedInput?.checked;
@@ -815,7 +890,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       const data = {
         title: titleInput?.value || '',
         slug: titleInput?.value || '',
-        content: contentInput?.value || '',
+        content: getQuillContent(),
         excerpt: excerptInput?.value || '',
         category: categoryInput?.value || '',
         published: false,

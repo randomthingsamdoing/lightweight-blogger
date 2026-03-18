@@ -136,6 +136,20 @@ const BLOG_STYLES = `
   margin-bottom: 0.5rem;
 }
 
+.lb-post-content p,
+.lb-post-content span,
+.lb-post-content div {
+  font-family: inherit;
+}
+
+.lb-post-content .ql-font-serif {
+  font-family: Georgia, 'Times New Roman', serif !important;
+}
+
+.lb-post-content .ql-font-monospace {
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
 .lb-back-link {
   display: inline-block;
   margin-bottom: 1.5rem;

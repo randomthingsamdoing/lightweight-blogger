@@ -39,9 +39,13 @@ async function build() {
     sourcemap: false,
   });
   
+  console.log('Copying TypeScript definitions...');
+  fs.copyFileSync('src/index.d.ts', 'dist/index.d.ts');
+  
   console.log('Build complete!');
   console.log('- dist/lightweight-blogger.js');
   console.log('- dist/lightweight-blogger.min.js');
+  console.log('- dist/index.d.ts');
 }
 
 build();

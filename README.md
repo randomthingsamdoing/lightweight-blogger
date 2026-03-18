@@ -1,15 +1,16 @@
 # Lightweight Blogger
 
-A lightweight, plug-and-play blogging system for web apps with an admin dashboard.
+A lightweight, plug-and-play blogging system for static websites. Uses Turso (libSQL) as the database for efficient multi-tenant hosting.
 
 ## Features
 
-- **Zero dependencies** - Vanilla JavaScript, framework-agnostic
-- **File-based storage** - Posts stored as JSON/Markdown in `.blog/` directory
+- **Zero server required** - Works with static hosting (Netlify, Vercel, GitHub Pages, etc.)
+- **Multi-tenant** - Multiple blogs share one database, filtered by domain
 - **Admin dashboard** - Write, edit, publish, and manage blog posts
-- **Passphrase encryption** - Secure credential storage using Web Crypto API
-- **Customizable** - Works with any frontend framework
-- **AI-ready** - Architecture supports future theme auto-generation
+- **Rich text editor** - Full WYSIWYG editing with Quill
+- **Auto-save drafts** - Drafts saved to localStorage every 30 seconds
+- **Pagination** - URL-based pagination (`/blog/page/2/`)
+- **Framework agnostic** - Works with any frontend framework
 
 ## Installation
 
@@ -19,138 +20,126 @@ npm install lightweight-blogger
 
 ## Quick Setup
 
-Run the interactive setup CLI in your project root:
-
-```bash
-npx lightweight-blogger setup
-```
-
-This will:
-1. Ask for your admin passphrase
-2. Configure blog title, paths, and description
-3. Create the `.blog/` directory with initial config
-
-## Usage
-
-### 1. Set Up the API Server
-
-Create a server file (e.g., `blog-server.js`):
-
-```javascript
-import { createBlogServer } from 'lightweight-blogger/server.js';
-
-const app = createBlogServer();
-app.listen(3001, () => {
-  console.log('Blog API running on http://localhost:3001');
-});
-```
-
-Or use the built-in Express server:
-
-```bash
-node node_modules/lightweight-blogger/server.js
-```
-
-### 2. Add Blog to Your Frontend
-
-In your app's main JavaScript:
-
-```javascript
-import { initBlog, initAdminPanel } from 'lightweight-blogger';
-
-// Initialize blog (renders on /blog and /blog/:slug)
-const initBlogView = initBlog({
-  blogPath: '/blog',
-  apiUrl: 'http://localhost:3001/api/blog'
-});
-
-// Initialize admin (renders on /admin)
-const initAdminView = initAdminPanel({
-  adminPath: '/admin',
-  apiUrl: 'http://localhost:3001/api/blog'
-});
-
-// Check current route and initialize
-const path = window.location.pathname;
-
-if (path.startsWith('/blog')) {
-  initBlogView();
-}
-
-if (path.startsWith('/admin')) {
-  initAdminView();
-}
-```
-
-### 3. Create the Blog Container
-
-Add a container element in your HTML:
+### 1. Add to Your HTML
 
 ```html
-<div id="lb-app"></div>
+<div id="app"></div>
+
+<script type="module">
+  import { autoInit } from 'lightweight-blogger';
+  autoInit();
+</script>
 ```
 
-For admin:
+### 2. That's It!
 
-```html
-<div id="lb-admin-app"></div>
-```
+- Visit `/admin` to create your blog and first post
+- Visit `/blog` to see your published posts
 
 ## Configuration
 
-Default configuration:
+Default options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `blogPath` | `/blog` | URL path for blog listing |
 | `adminPath` | `/admin` | URL path for admin dashboard |
-| `postsPerPage` | `10` | Posts to show per page |
-| `blogTitle` | `My Blog` | Title displayed on blog |
+| `containerId` | `app` | ID of the container element |
+| `replaceContent` | `true` | Replace container content |
+| `postsPerPage` | `10` | Posts per page in listing |
+| `cacheTtl` | `300000` | Cache duration (5 min default) |
+| `dbUrl` | package default | Turso database URL |
+| `dbToken` | package default | Turso auth token |
 
-### Updating Config
+### Custom Configuration
 
 ```javascript
-import { updateConfig } from 'lightweight-blogger';
+import { autoInit } from 'lightweight-blogger';
 
-await updateConfig('your-passphrase', {
-  blogTitle: 'My Awesome Blog',
-  blogDescription: 'Thoughts on tech'
+autoInit({
+  blogPath: '/posts',
+  adminPath: '/manage',
+  postsPerPage: 5,
+  cacheTtl: 60000 // 1 minute
+});
+```
+
+### Using Custom Turso Database
+
+```javascript
+import { autoInit } from 'lightweight-blogger';
+
+autoInit({
+  dbUrl: 'libsql://your-database.turso.io',
+  dbToken: 'your-auth-token'
+});
+```
+
+## Usage
+
+### Blog Paths
+
+| Path | Description |
+|------|-------------|
+| `/blog` | Blog listing (paginated) |
+| `/blog/page/2/` | Second page of posts |
+| `/blog/your-post-slug` | Individual post |
+| `/admin` | Admin dashboard |
+
+### Individual Function Imports
+
+```javascript
+import { initBlog, initAdminPanel } from 'lightweight-blogger';
+
+// Initialize blog views
+initBlog({
+  blogPath: '/blog',
+  postsPerPage: 10
+});
+
+// Initialize admin panel
+initAdminPanel({
+  adminPath: '/admin'
 });
 ```
 
 ## Blog Post Structure
 
-Posts are stored in `.blog/posts/` as JSON:
+Posts are stored in your Turso database with these fields:
 
-```json
-{
-  "slug": "my-first-post",
-  "title": "My First Post",
-  "content": "Post content here...",
-  "excerpt": "Brief description",
-  "category": "Tech",
-  "published": true,
-  "createdAt": "2024-01-15T10:30:00.000Z",
-  "updatedAt": "2024-01-15T10:30:00.000Z"
-}
-```
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Auto-incremented ID |
+| `blog_id` | integer | Foreign key to blog |
+| `slug` | text | URL-friendly identifier |
+| `title` | text | Post title |
+| `content` | text | HTML content from editor |
+| `excerpt` | text | Short preview text |
+| `category` | text | Optional category |
+| `published` | boolean | Published status |
+| `domain` | text | Domain for filtering |
+| `created_at` | timestamp | Creation time |
+| `updated_at` | timestamp | Last update time |
+
+## Multi-Tenant Architecture
+
+Each blog is identified by:
+1. **Domain** - Automatically detected from `window.location.hostname`
+2. **Slug** - Unique identifier chosen during setup
+
+This allows multiple websites to share the same database while keeping data isolated. Each page load requires only 1 database query to fetch the correct posts.
 
 ## Security
 
-Credentials are encrypted using **AES-GCM** with:
-- PBKDF2 key derivation (100,000 iterations)
-- Random 16-byte salt per encryption
-- Random 12-byte IV per encryption
+- Passwords hashed with PBKDF2 + SHA-256
+- Tokens expire and need refreshing (handled automatically)
+- Credentials stored encrypted in database
 
-The plaintext passphrase never touches disk. Only the encrypted blob is stored.
+## Dependencies
 
-## Future Features (v1.0)
-
-- AI-powered theme auto-generation
-- Rich text editor (Tiptap/Quill)
-- Categories and tags
-- SEO optimization
-- RSS feed
+This package uses:
+- [Quill](https://quilljs.com/) - Rich text editor (loaded from CDN)
+- [Turso](https://turso.tech/) - Serverless SQLite database
 
 ## License
 
