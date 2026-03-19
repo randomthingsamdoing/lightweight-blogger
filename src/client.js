@@ -13,13 +13,13 @@ let blogCache = {}; // { domain: { posts: [], timestamp: Date.now() } }
 async function initDatabase(config) {
   if (dbInitialized) return;
   
-  const { initDatabase: initDb, ensureTables, getBlogBySlug, createBlog, getPost, getPostsByDomain, getPostByDomainAndSlug, getAllPostsForBlog, createPost, updatePost, deletePost } = await import('./database/index.js');
+  const { initDatabase: initDb, ensureTables, getBlogBySlug, getBlogByDomain, createBlog, getPost, getPostsByDomain, getPostByDomainAndSlug, getAllPostsForBlog, createPost, updatePost, deletePost } = await import('./database/index.js');
   const { hashPassword: hash, verifyPassword: verify } = await import('./security/index.js');
   
   initDb(config);
   await ensureTables();
   dbInitialized = true;
-  window.__lb_db = { getBlogBySlug, createBlog, getPost, getPostsByDomain, getPostByDomainAndSlug, getAllPostsForBlog, createPost, updatePost, deletePost, ensureTables, hashPassword: hash, verifyPassword: verify };
+  window.__lb_db = { getBlogBySlug, getBlogByDomain, createBlog, getPost, getPostsByDomain, getPostByDomainAndSlug, getAllPostsForBlog, createPost, updatePost, deletePost, ensureTables, hashPassword: hash, verifyPassword: verify };
 }
 
 function getSession() {
@@ -65,11 +65,19 @@ async function initBlog(options = {}) {
   
   try {
     const { renderBlogListing, renderBlogPost, renderError, renderLoading } = await import('./blog/index.js');
+    const { injectSitemapLink, injectAlternateLinks } = await import('./blog/seo.js');
     await initDatabase({ dbUrl, dbToken });
     
-    const { getPostsByDomain, getPostByDomainAndSlug } = window.__lb_db;
+    const { getPostsByDomain, getPostByDomainAndSlug, getBlogByDomain } = window.__lb_db;
     const path = window.location.pathname;
     const domain = window.location.hostname;
+    const siteUrl = window.location.origin;
+    
+    const blogInfo = await getBlogByDomain(domain);
+    const blogTitle = blogInfo?.blog_title || blogInfo?.username || 'Blog';
+    
+    injectSitemapLink({ siteUrl, blogPath });
+    injectAlternateLinks({ siteUrl, blogPath });
     
     const getPageFromUrl = () => {
       const match = path.match(new RegExp(`^${blogPath}/page/(\\d+)/?$`));
@@ -103,7 +111,7 @@ async function initBlog(options = {}) {
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }));
-      renderBlogListing(mapped, { blogPath, page, postsPerPage, totalPosts });
+      renderBlogListing(mapped, { blogPath, page, postsPerPage, totalPosts, blogTitle });
     } else {
       const match = path.match(new RegExp(`^${blogPath}/([^/]+)/?$`));
       if (match) {
@@ -124,8 +132,11 @@ async function initBlog(options = {}) {
             slug: fullPost.slug,
             title: fullPost.title,
             content: fullPost.content,
-            createdAt: fullPost.created_at
-          }, { blogPath });
+            excerpt: fullPost.excerpt,
+            category: fullPost.category,
+            createdAt: fullPost.created_at,
+            updatedAt: fullPost.updated_at
+          }, { blogPath, blogTitle });
         } else {
           renderError('Post not found');
         }
@@ -493,8 +504,9 @@ async function setupLoginEvents(container, dbUrl, dbToken) {
       try {
         const { hashPassword, createBlog } = window.__lb_db;
         const hashData = await hashPassword(password);
+        const title = document.getElementById('lb-blog-title').value.trim() || 'My Blog';
         
-        await createBlog(slug, JSON.stringify(hashData));
+        await createBlog(slug, JSON.stringify(hashData), title);
         
         const { getBlogBySlug } = window.__lb_db;
         const blog = await getBlogBySlug(slug);
@@ -958,3 +970,4 @@ export function autoInit(options = {}) {
 }
 
 export { renderLogin, renderDashboard, renderEditor };
+export { generateSitemap, generateRssFeed, generateRobotsTxt, injectSitemapLink, injectAlternateLinks, injectCanonicalLink } from './blog/seo.js';

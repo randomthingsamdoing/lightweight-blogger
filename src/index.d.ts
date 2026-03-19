@@ -77,3 +77,36 @@ export function renderBlogPost(post: BlogPost, config?: RenderOptions): void;
 export function renderLoading(): void;
 
 export function renderError(message: string): void;
+
+export interface SitemapConfig {
+  siteUrl: string;
+  blogPath?: string;
+  blogTitle?: string;
+  lastMod?: string;
+}
+
+export interface RssConfig {
+  siteUrl: string;
+  blogPath?: string;
+  blogTitle?: string;
+  blogDescription?: string;
+  language?: string;
+}
+
+export interface RobotsConfig {
+  siteUrl: string;
+  blogPath?: string;
+  allowSearchEngines?: boolean;
+}
+
+export function generateSitemap(posts: BlogPost[], config: SitemapConfig): string;
+
+export function generateRssFeed(posts: BlogPost[], config: RssConfig): string;
+
+export function generateRobotsTxt(config: RobotsConfig): string;
+
+export function injectSitemapLink(config: { siteUrl: string; blogPath?: string }): void;
+
+export function injectAlternateLinks(config: { siteUrl: string; blogPath?: string }): void;
+
+export function injectCanonicalLink(url: string): void;

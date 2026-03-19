@@ -109,6 +109,7 @@ export async function ensureTables() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
+      blog_title TEXT DEFAULT '',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -132,21 +133,21 @@ export async function ensureTables() {
   `);
 }
 
-export async function createBlog(username, passwordHash) {
+export async function createBlog(username, passwordHash, blogTitle = '') {
   const result = await execute(
-    'INSERT INTO accounts (username, password_hash) VALUES (?, ?)',
-    [username, passwordHash]
+    'INSERT INTO accounts (username, password_hash, blog_title) VALUES (?, ?, ?)',
+    [username, passwordHash, blogTitle]
   );
-  return { id: result.lastInsertRowid, username };
+  return { id: result.lastInsertRowid, username, blog_title: blogTitle };
 }
 
 export async function getBlogBySlug(username) {
-  const result = await execute('SELECT id, username, password_hash, created_at FROM accounts WHERE username = ?', [username]);
+  const result = await execute('SELECT id, username, password_hash, blog_title, created_at FROM accounts WHERE username = ?', [username]);
   return result.rows[0] || null;
 }
 
 export async function getBlogById(id) {
-  const result = await execute('SELECT id, username, password_hash, created_at FROM accounts WHERE id = ?', [id]);
+  const result = await execute('SELECT id, username, password_hash, blog_title, created_at FROM accounts WHERE id = ?', [id]);
   return result.rows[0] || null;
 }
 
@@ -229,6 +230,18 @@ export async function getPublishedPostsForBlog(blogId) {
 
 export async function getAllPostsForBlog(blogId) {
   return getPostsByAccountId(blogId, {});
+}
+
+export async function getBlogByDomain(domain) {
+  const result = await execute(
+    `SELECT a.id, a.username, a.password_hash, a.blog_title, a.created_at 
+     FROM accounts a 
+     INNER JOIN posts p ON a.id = p.account_id 
+     WHERE p.domain = ? 
+     LIMIT 1`,
+    [domain]
+  );
+  return result.rows[0] || null;
 }
 
 export async function getPost(blogId, slug) {

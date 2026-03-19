@@ -213,6 +213,91 @@ function formatDate(dateStr) {
   });
 }
 
+function formatDateISO(dateStr) {
+  const date = new Date(dateStr);
+  return date.toISOString();
+}
+
+function injectSeoMeta(config = {}) {
+  const { title, description, url, type = 'website', image, publishedTime, modifiedTime, author, section, tags } = config;
+  const siteUrl = window.location.origin;
+  const defaultTitle = config.blogTitle || 'Blog';
+  const defaultDescription = config.blogDescription || '';
+  const metaTitle = title ? `${title} | ${defaultTitle}` : defaultTitle;
+  const metaDesc = description || defaultDescription;
+  const metaUrl = url || window.location.href;
+  const metaImage = image || `${siteUrl}/og-default.png`;
+
+  const existingOrCreate = (name, content, property = false) => {
+    const attr = property ? 'property' : 'name';
+    let meta = document.querySelector(`meta[${attr}="${name}"]`);
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute(attr, name);
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', content);
+  };
+
+  document.title = metaTitle;
+  existingOrCreate('description', metaDesc);
+  existingOrCreate('canonical', metaUrl);
+  existingOrCreate('og:title', metaTitle, true);
+  existingOrCreate('og:description', metaDesc, true);
+  existingOrCreate('og:url', metaUrl, true);
+  existingOrCreate('og:type', type, true);
+  existingOrCreate('og:site_name', config.blogTitle || 'Blog', true);
+  existingOrCreate('og:image', metaImage, true);
+  existingOrCreate('og:image:width', '1200', true);
+  existingOrCreate('og:image:height', '630', true);
+  existingOrCreate('twitter:card', 'summary_large_image');
+  existingOrCreate('twitter:title', metaTitle);
+  existingOrCreate('twitter:description', metaDesc);
+  existingOrCreate('twitter:image', metaImage);
+  existingOrCreate('twitter:site', config.twitterHandle || '@yourwebsite');
+
+  if (publishedTime) existingOrCreate('article:published_time', formatDateISO(publishedTime), true);
+  if (modifiedTime) existingOrCreate('article:modified_time', formatDateISO(modifiedTime), true);
+  if (author) existingOrCreate('article:author', author, true);
+  if (section) existingOrCreate('article:section', section, true);
+  if (tags && tags.length) existingOrCreate('keywords', tags.join(', '));
+
+  let schema = document.querySelector('#lb-json-ld');
+  if (schema) schema.remove();
+
+  if (type === 'article' && config.blogTitle) {
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": title,
+      "description": metaDesc,
+      "url": metaUrl,
+      "datePublished": publishedTime ? formatDateISO(publishedTime) : undefined,
+      "dateModified": modifiedTime ? formatDateISO(modifiedTime) : undefined,
+      "author": {
+        "@type": "Person",
+        "name": author || "Anonymous"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": config.blogTitle,
+        "logo": {
+          "@type": "ImageObject",
+          "url": metaImage
+        }
+      },
+      "image": image ? [metaImage] : undefined,
+      "articleBody": description
+    };
+
+    schema = document.createElement('script');
+    schema.id = 'lb-json-ld';
+    schema.type = 'application/ld+json';
+    schema.textContent = JSON.stringify(jsonLd);
+    document.head.appendChild(schema);
+  }
+}
+
 function renderPagination(config = {}) {
   const { page = 1, postsPerPage = 10, totalPosts = 0, blogPath = '/blog' } = config;
   const totalPages = Math.ceil(totalPosts / postsPerPage);
@@ -241,17 +326,19 @@ function renderPostList(posts, config = {}) {
   }
   
   return `
-    <ul class="lb-post-list">
+    <ul class="lb-post-list" role="list">
       ${posts.map(post => `
         <li class="lb-post-item">
-          <a href="${config.blogPath || '/blog'}/${post.slug}">
-            <h2>${escapeHtml(post.title)}</h2>
-            <div class="lb-post-meta">
-              ${formatDate(post.createdAt)}
-              ${post.category ? ` · ${escapeHtml(post.category)}` : ''}
-            </div>
-            ${post.excerpt ? `<p class="lb-post-excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
-          </a>
+          <article itemscope itemtype="https://schema.org/BlogPosting">
+            <a href="${config.blogPath || '/blog'}/${post.slug}" itemprop="url">
+              <h2 itemprop="headline">${escapeHtml(post.title)}</h2>
+              <div class="lb-post-meta">
+                <time itemprop="datePublished" datetime="${formatDateISO(post.createdAt)}">${formatDate(post.createdAt)}</time>
+                ${post.category ? ` · <span itemprop="articleSection">${escapeHtml(post.category)}</span>` : ''}
+              </div>
+              ${post.excerpt ? `<p class="lb-post-excerpt" itemprop="description">${escapeHtml(post.excerpt)}</p>` : ''}
+            </a>
+          </article>
         </li>
       `).join('')}
     </ul>
@@ -261,20 +348,24 @@ function renderPostList(posts, config = {}) {
 
 function renderPost(post, config = {}) {
   const content = post.content || '';
+  const siteUrl = window.location.origin;
+  const postUrl = `${siteUrl}${config.blogPath || '/blog'}/${post.slug}`;
   
   return `
     <a href="${config.blogPath || '/blog'}" class="lb-back-link">← Back to blog</a>
-    <article class="lb-post">
+    <article class="lb-post" itemscope itemtype="https://schema.org/BlogPosting">
       <header class="lb-header">
-        <h1>${escapeHtml(post.title)}</h1>
+        <h1 itemprop="headline">${escapeHtml(post.title)}</h1>
         <div class="lb-post-meta">
-          ${formatDate(post.createdAt)}
-          ${post.category ? ` · ${escapeHtml(post.category)}` : ''}
+          <time itemprop="datePublished" datetime="${formatDateISO(post.createdAt)}">${formatDate(post.createdAt)}</time>
+          ${post.category ? ` · <span itemprop="articleSection">${escapeHtml(post.category)}</span>` : ''}
         </div>
       </header>
-      <div class="lb-post-content">
+      <div class="lb-post-content" itemprop="articleBody">
         ${content}
       </div>
+      <meta itemprop="url" content="${postUrl}">
+      <meta itemprop="description" content="${escapeHtml(post.excerpt || '')}">
     </article>
   `;
 }
@@ -302,12 +393,33 @@ function injectStyles() {
 
 export function renderBlogListing(posts, config = {}) {
   injectStyles();
+  injectSeoMeta({
+    title: config.blogTitle,
+    description: config.blogDescription,
+    type: 'website',
+    blogTitle: config.blogTitle
+  });
   const container = document.getElementById('lb-app') || document.body;
   container.innerHTML = renderBlogIndex(posts, config);
 }
 
 export function renderBlogPost(post, config = {}) {
   injectStyles();
+  const siteUrl = window.location.origin;
+  const postUrl = `${siteUrl}${config.blogPath || '/blog'}/${post.slug}`;
+  injectSeoMeta({
+    title: post.title,
+    description: post.excerpt,
+    url: postUrl,
+    type: 'article',
+    publishedTime: post.createdAt,
+    modifiedTime: post.updatedAt,
+    author: config.author,
+    section: post.category,
+    tags: post.tags,
+    image: post.image,
+    blogTitle: config.blogTitle
+  });
   const container = document.getElementById('lb-app') || document.body;
   container.innerHTML = renderPost(post, config);
 }

@@ -1,6 +1,6 @@
 # Lightweight Blogger
 
-A lightweight, plug-and-play blogging system for static websites. Uses Turso (libSQL) as the database for efficient multi-tenant hosting.
+A lightweight, plug-and-play blogging system for static websites. Uses Turso (libSQL) as the database for efficient multi-tenant hosting. Built-in SEO optimization for Google rankings.
 
 ## Features
 
@@ -9,7 +9,7 @@ A lightweight, plug-and-play blogging system for static websites. Uses Turso (li
 - **Admin dashboard** - Write, edit, publish, and manage blog posts
 - **Rich text editor** - Full WYSIWYG editing with Quill
 - **Auto-save drafts** - Drafts saved to localStorage every 30 seconds
-- **Pagination** - URL-based pagination (`/blog/page/2/`)
+- **SEO optimized** - Meta tags, Open Graph, Twitter Cards, JSON-LD, sitemap, RSS
 - **Framework agnostic** - Works with any frontend framework
 
 ## Installation
@@ -31,14 +31,12 @@ npm install lightweight-blogger
 </script>
 ```
 
-### 2. That's It!
+### 2. Create Your Blog
 
 - Visit `/admin` to create your blog and first post
 - Visit `/blog` to see your published posts
 
 ## Configuration
-
-Default options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
@@ -51,56 +49,67 @@ Default options:
 | `dbUrl` | package default | Turso database URL |
 | `dbToken` | package default | Turso auth token |
 
-### Custom Configuration
+## SEO Features
 
-```javascript
-import { autoInit } from 'lightweight-blogger';
+### Automatic SEO (Built-in)
 
-autoInit({
-  blogPath: '/posts',
-  adminPath: '/manage',
-  postsPerPage: 5,
-  cacheTtl: 60000 // 1 minute
-});
+Every blog page automatically includes:
+
+**Meta Tags:**
+- Dynamic `<title>` with "Post Title | Blog Name" format
+- Meta description from post excerpt
+- Canonical URL to prevent duplicate content
+
+**Open Graph Tags** (for Facebook/LinkedIn sharing):
+- `og:title`, `og:description`, `og:url`
+- `og:type`, `og:site_name`, `og:image`
+
+**Twitter Cards:**
+- `twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`
+
+**Structured Data** (JSON-LD Schema.org BlogPosting):
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Post Title",
+  "description": "Post excerpt",
+  "datePublished": "2024-01-15T10:30:00.000Z",
+  "author": { "@type": "Person", "name": "..." },
+  "publisher": { "@type": "Organization", "name": "..." }
+}
 ```
 
-### Using Custom Turso Database
+**Semantic HTML:**
+- `<article itemscope itemtype="https://schema.org/BlogPosting">`
+- `<time itemprop="datePublished" datetime="...">`
+- `<meta itemprop="description">`
 
-```javascript
-import { autoInit } from 'lightweight-blogger';
+### Generate Sitemap & RSS (CLI)
 
-autoInit({
-  dbUrl: 'libsql://your-database.turso.io',
-  dbToken: 'your-auth-token'
-});
+For full SEO, generate sitemap.xml and feed.xml at build time:
+
+```bash
+npx lightweight-blogger generate \
+  --site-url https://yoursite.com \
+  --domain yoursite.com \
+  --blog-title "My Blog" \
+  --blog-description "Thoughts on tech" \
+  --output-dir ./public/blog
 ```
 
-## Usage
+This creates:
+- `public/blog/sitemap.xml` - XML sitemap for Google
+- `public/blog/feed.xml` - RSS feed for subscribers
+- `public/robots.txt` - Crawler instructions
 
-### Blog Paths
-
-| Path | Description |
-|------|-------------|
-| `/blog` | Blog listing (paginated) |
-| `/blog/page/2/` | Second page of posts |
-| `/blog/your-post-slug` | Individual post |
-| `/admin` | Admin dashboard |
-
-### Individual Function Imports
-
-```javascript
-import { initBlog, initAdminPanel } from 'lightweight-blogger';
-
-// Initialize blog views
-initBlog({
-  blogPath: '/blog',
-  postsPerPage: 10
-});
-
-// Initialize admin panel
-initAdminPanel({
-  adminPath: '/admin'
-});
+Add to your build script in `package.json`:
+```json
+{
+  "scripts": {
+    "build": "vite build && npx lightweight-blogger generate --site-url https://yoursite.com --domain yoursite.com"
+  }
+}
 ```
 
 ## Blog Post Structure
@@ -114,7 +123,7 @@ Posts are stored in your Turso database with these fields:
 | `slug` | text | URL-friendly identifier |
 | `title` | text | Post title |
 | `content` | text | HTML content from editor |
-| `excerpt` | text | Short preview text |
+| `excerpt` | text | Short preview text (for SEO) |
 | `category` | text | Optional category |
 | `published` | boolean | Published status |
 | `domain` | text | Domain for filtering |

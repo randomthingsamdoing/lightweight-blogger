@@ -1,11 +1,14 @@
 {
   "name": "lightweight-blogger",
   "version": "0.0.1",
-  "description": "A lightweight, plug-and-play blogging system for web apps with admin dashboard",
+  "description": "A lightweight, plug-and-play blogging system for static websites with admin dashboard and SEO features",
   "main": "dist/lightweight-blogger.js",
   "module": "dist/lightweight-blogger.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "bin": {
+    "lightweight-blogger": "./src/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/lightweight-blogger.js",
@@ -13,12 +16,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "src/cli.js"
   ],
   "scripts": {
     "build": "node build.js",
     "build:umd": "esbuild src/client.js --bundle --format=iife --outfile=dist/lightweight-blogger.umd.js --global-name=LightweightBlogger --minify --platform=browser",
-    "build:all": "node build.js && npm run build:umd"
+    "build:all": "node build.js && npm run build:umd",
+    "generate": "node src/cli.js"
   },
   "devDependencies": {
     "esbuild": "^0.20.0"
@@ -28,7 +33,10 @@
     "cms",
     "admin",
     "lightweight",
-    "static-site"
+    "static-site",
+    "seo",
+    "rss",
+    "sitemap"
   ],
   "author": "",
   "license": "MIT",
