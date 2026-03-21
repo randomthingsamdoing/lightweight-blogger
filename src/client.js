@@ -35,6 +35,17 @@ function getSession() {
   return null;
 }
 
+function setSession(blog, status) {
+  sessionData = {
+    blogId: blog.id,
+    username: blog.username,
+    slug: blog.username,
+    blogTitle: blog.blog_title || blog.username,
+    status
+  };
+  localStorage.setItem('lb_session', JSON.stringify(sessionData));
+}
+
 function getLocalDrafts(blogId) {
   const drafts = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -196,44 +207,49 @@ const ADMIN_STYLES = `
 .lb-form-group input:focus, .lb-form-group textarea:focus { outline: none; border-color: var(--lb-primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 .lb-form-group textarea { min-height: 200px; resize: vertical; line-height: 1.6; }
 .lb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem 1.5rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+.lb-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .lb-btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 100%; }
-.lb-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
+.lb-btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4); }
 .lb-btn-danger { background: var(--lb-danger); color: white; }
-.lb-btn-danger:hover { background: #b91c1c; }
+.lb-btn-danger:hover:not(:disabled) { background: #b91c1c; }
 .lb-btn-secondary { background: var(--lb-surface); color: var(--lb-text); border: 2px solid var(--lb-border); }
-.lb-btn-secondary:hover { background: var(--lb-bg); }
+.lb-btn-secondary:hover:not(:disabled) { background: var(--lb-bg); }
+.lb-btn-ghost { background: transparent; color: var(--lb-text-secondary); border: none; padding: 0.5rem 1rem; }
+.lb-btn-ghost:hover { background: var(--lb-bg); }
 .lb-btn-block { width: 100%; }
 .lb-error { background: #fef2f2; color: var(--lb-danger); padding: 0.875rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; border-left: 4px solid var(--lb-danger); }
-.lb-admin-header { background: var(--lb-surface); border-bottom: 1px solid var(--lb-border); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-.lb-admin-header h1 { font-size: 1.25rem; font-weight: 600; margin: 0; }
-.lb-admin-nav { display: flex; gap: 0.75rem; }
-.lb-admin-content { max-width: 900px; margin: 0 auto; padding: 2rem; }
+.lb-success { background: #f0fdf4; color: var(--lb-success); padding: 0.875rem 1rem; border-radius: 8px; font-size: 0.875rem; margin-bottom: 1rem; border-left: 4px solid var(--lb-success); }
+.lb-admin-header { background: var(--lb-surface); border-bottom: 1px solid var(--lb-border); padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 3px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 1rem; }
+.lb-admin-header h1 { font-size: 1.1rem; font-weight: 600; margin: 0; }
+.lb-admin-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lb-admin-content { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
 .lb-post-list { background: var(--lb-surface); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
-.lb-post-list-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--lb-border); display: flex; align-items: center; justify-content: space-between; background: #f8fafc; }
-.lb-post-list-header h2 { font-size: 1rem; font-weight: 600; margin: 0; color: var(--lb-text); }
-.lb-post-item { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--lb-border); transition: background 0.15s; }
+.lb-post-list-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--lb-border); display: flex; align-items: center; justify-content: space-between; background: #f8fafc; flex-wrap: wrap; gap: 0.5rem; }
+.lb-post-list-header h2 { font-size: 0.95rem; font-weight: 600; margin: 0; color: var(--lb-text); }
+.lb-post-item { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom: 1px solid var(--lb-border); transition: background 0.15s; flex-wrap: wrap; gap: 1rem; }
 .lb-post-item:last-child { border-bottom: none; }
 .lb-post-item:hover { background: #f8fafc; }
+.lb-post-info { flex: 1; min-width: 200px; }
 .lb-post-info h3 { font-size: 1rem; font-weight: 600; margin: 0 0 0.25rem; color: var(--lb-text); }
 .lb-post-info p { font-size: 0.8rem; color: var(--lb-text-secondary); margin: 0; }
 .lb-post-status { display: inline-block; padding: 0.25rem 0.625rem; font-size: 0.7rem; font-weight: 600; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.5px; }
 .lb-status-published { background: #dcfce7; color: #166534; }
 .lb-status-draft { background: #f1f5f9; color: #64748b; }
-.lb-post-actions { display: flex; gap: 0.5rem; }
-.lb-btn-sm { padding: 0.5rem 0.875rem; font-size: 0.8rem; border-radius: 8px; }
+.lb-post-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lb-btn-sm { padding: 0.5rem 0.75rem; font-size: 0.8rem; border-radius: 8px; }
 .lb-editor { background: var(--lb-surface); border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-.lb-editor-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--lb-border); }
-.lb-editor-header h2 { font-size: 1.1rem; font-weight: 600; margin: 0; }
-.lb-editor-body { padding: 1.5rem; }
+.lb-editor-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--lb-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.lb-editor-header h2 { font-size: 1rem; font-weight: 600; margin: 0; }
+.lb-editor-body { padding: 1.25rem; }
 .lb-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .lb-checkbox-group { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .lb-checkbox-group input { width: auto; }
 .lb-checkbox-group label { margin: 0; font-size: 0.9rem; }
-.lb-empty-state { text-align: center; padding: 3rem; color: var(--lb-text-secondary); }
-.lb-hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 3rem; text-align: center; border-radius: 16px; margin-bottom: 2rem; }
-.lb-hero h2 { font-size: 1.5rem; margin: 0 0 0.5rem; }
+.lb-empty-state { text-align: center; padding: 2rem; color: var(--lb-text-secondary); }
+.lb-hero { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; text-align: center; border-radius: 16px; margin-bottom: 1.5rem; }
+.lb-hero h2 { font-size: 1.25rem; margin: 0 0 0.5rem; }
 .lb-hero p { opacity: 0.9; margin: 0; }
-.lb-loading { display: flex; align-items: center; justify-content: center; padding: 3rem; color: var(--lb-text-secondary); }
+.lb-loading { display: flex; align-items: center; justify-content: center; padding: 2rem; color: var(--lb-text-secondary); }
 .lb-spinner { width: 40px; height: 40px; border: 3px solid var(--lb-border); border-top-color: var(--lb-primary); border-radius: 50%; animation: lb-spin 1s linear infinite; }
 @keyframes lb-spin { to { transform: rotate(360deg); } }
 .lb-saving-indicator { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--lb-text-secondary); }
@@ -244,12 +260,33 @@ const ADMIN_STYLES = `
 .lb-quill-editor { background: white; border-radius: 10px; }
 .lb-ql-container { border: 2px solid var(--lb-border) !important; border-radius: 0 0 10px 10px !important; }
 .lb-ql-toolbar { border-radius: 10px 10px 0 0 !important; border: 2px solid var(--lb-border) !important; border-bottom: none !important; }
-.lb-ql-editor { min-height: 250px; font-family: inherit; font-size: 1rem; line-height: 1.6; }
+.lb-ql-editor { min-height: 200px; font-family: inherit; font-size: 1rem; line-height: 1.6; }
 .lb-ql-editor.ql-blank::before { color: var(--lb-text-secondary); font-style: normal; }
 .ql-toolbar.ql-snow .ql-picker-label { padding: 2px 6px; }
 .ql-snow .ql-tooltip { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 .ql-snow .ql-tooltip input[type="text"] { border-radius: 4px; border: 1px solid var(--lb-border); padding: 4px 8px; }
 .ql-snow .ql-tooltip a { color: var(--lb-primary); }
+.lb-modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem; backdrop-filter: blur(4px); }
+.lb-modal { background: var(--lb-surface); border-radius: 16px; padding: 1.5rem; max-width: 400px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: lb-modal-in 0.2s ease; }
+@keyframes lb-modal-in { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+.lb-modal h3 { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.75rem; }
+.lb-modal p { color: var(--lb-text-secondary); margin: 0 0 1.5rem; font-size: 0.95rem; line-height: 1.5; }
+.lb-modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+.lb-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--lb-text); color: white; padding: 1rem 1.5rem; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 10000; animation: lb-toast-in 0.3s ease; font-size: 0.9rem; }
+.lb-toast.success { background: var(--lb-success); }
+.lb-toast.error { background: var(--lb-danger); }
+@keyframes lb-toast-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 600px) {
+  .lb-admin-header { padding: 0.75rem 1rem; }
+  .lb-admin-header h1 { font-size: 1rem; }
+  .lb-admin-content { padding: 1rem; }
+  .lb-meta-row { grid-template-columns: 1fr; }
+  .lb-editor-body { padding: 1rem; }
+  .lb-post-item { flex-direction: column; align-items: flex-start; }
+  .lb-post-actions { width: 100%; justify-content: flex-start; }
+  .lb-btn { padding: 0.75rem 1rem; font-size: 0.9rem; }
+  .lb-toast { left: 1rem; right: 1rem; bottom: 1rem; }
+}
 `;
 
 function injectStyles() {
@@ -268,6 +305,77 @@ function injectStyles() {
     const quillJS = document.createElement('script');
     quillJS.src = 'https://cdn.quilljs.com/1.3.7/quill.min.js';
     document.head.appendChild(quillJS);
+  }
+}
+
+function showModal(options = {}) {
+  const { title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false, onConfirm, onCancel } = options;
+  
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'lb-modal-overlay';
+    overlay.innerHTML = `
+      <div class="lb-modal">
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(message)}</p>
+        <div class="lb-modal-actions">
+          <button class="lb-btn lb-btn-secondary lb-modal-cancel">${escapeHtml(cancelText)}</button>
+          <button class="lb-btn ${danger ? 'lb-btn-danger' : 'lb-btn-primary'} lb-modal-confirm">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    const close = (result) => {
+      document.body.removeChild(overlay);
+      resolve(result);
+    };
+    
+    overlay.querySelector('.lb-modal-cancel').addEventListener('click', () => {
+      if (onCancel) onCancel();
+      close(false);
+    });
+    
+    overlay.querySelector('.lb-modal-confirm').addEventListener('click', () => {
+      if (onConfirm) onConfirm();
+      close(true);
+    });
+    
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        if (onCancel) onCancel();
+        close(false);
+      }
+    });
+  });
+}
+
+function showToast(message, type = 'info', duration = 3000) {
+  const existing = document.querySelector('.lb-toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = `lb-toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'lb-toast-in 0.3s ease reverse';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+function setButtonLoading(btn, loading) {
+  if (loading) {
+    btn.disabled = true;
+    btn.dataset.originalText = btn.textContent;
+    btn.textContent = 'Loading...';
+    btn.classList.add('lb-loading-btn');
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.originalText || btn.textContent;
+    btn.classList.remove('lb-loading-btn');
   }
 }
 
@@ -478,6 +586,7 @@ async function setupLoginEvents(container, dbUrl, dbToken) {
   }
   
   if (form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -487,24 +596,31 @@ async function setupLoginEvents(container, dbUrl, dbToken) {
       const confirmPassword = document.getElementById('lb-confirm-password').value;
       
       if (password !== confirmPassword) {
-        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Passwords do not match</div>';
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Passwords do not match. Please try again.</div>';
         return;
       }
       
       if (password.length < 4) {
-        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Password must be at least 4 characters</div>';
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Password must be at least 4 characters long.</div>';
         return;
       }
       
       if (!slug) {
-        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Please enter a blog slug</div>';
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Please enter a URL slug for your blog.</div>';
         return;
       }
+      
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Slug can only contain letters, numbers, and hyphens.</div>';
+        return;
+      }
+      
+      setButtonLoading(submitBtn, true);
+      document.getElementById('lb-login-error').innerHTML = '';
       
       try {
         const { hashPassword, createBlog } = window.__lb_db;
         const hashData = await hashPassword(password);
-        const title = document.getElementById('lb-blog-title').value.trim() || 'My Blog';
         
         await createBlog(slug, JSON.stringify(hashData), title);
         
@@ -516,8 +632,14 @@ async function setupLoginEvents(container, dbUrl, dbToken) {
         const drafts = getLocalDrafts(blog.id);
         container.innerHTML = renderDashboard([], slug, drafts, blog.id);
         setupDashboardEvents(container, slug, dbUrl, dbToken, blog.id);
+        showToast('Blog created successfully!', 'success');
       } catch (err) {
-        document.getElementById('lb-login-error').innerHTML = `<div class="lb-error">${err.message || 'Failed to create blog. This slug may already be taken.'}</div>`;
+        const message = err.message?.includes('UNIQUE constraint') 
+          ? 'This blog URL is already taken. Please choose a different one.'
+          : 'Failed to create blog. Please try again or contact support.';
+        document.getElementById('lb-login-error').innerHTML = `<div class="lb-error">${message}</div>`;
+      } finally {
+        setButtonLoading(submitBtn, false);
       }
     });
   }
@@ -565,18 +687,33 @@ function setupLoginFormEvents(container, dbUrl, dbToken) {
   }
   
   if (form) {
+    const submitBtn = form.querySelector('button[type="submit"]');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       
       const slug = document.getElementById('lb-blog-slug').value.trim().toLowerCase();
       const password = document.getElementById('lb-password').value;
       
+      if (!slug) {
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Please enter your blog URL.</div>';
+        return;
+      }
+      
+      if (!password) {
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Please enter your password.</div>';
+        return;
+      }
+      
+      setButtonLoading(submitBtn, true);
+      document.getElementById('lb-login-error').innerHTML = '';
+      
       try {
         const { getBlogBySlug, verifyPassword } = window.__lb_db;
         const blog = await getBlogBySlug(slug);
         
         if (!blog) {
-          document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Blog not found</div>';
+          document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">No blog found with this URL. Please check the URL or create a new blog.</div>';
+          setButtonLoading(submitBtn, false);
           return;
         }
         
@@ -596,7 +733,8 @@ function setupLoginFormEvents(container, dbUrl, dbToken) {
         const isValid = await verifyPassword(password, hashData.hash, hashData.salt);
         
         if (!isValid) {
-          document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Invalid password</div>';
+          document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Incorrect password. Please try again.</div>';
+          setButtonLoading(submitBtn, false);
           return;
         }
         
@@ -608,8 +746,11 @@ function setupLoginFormEvents(container, dbUrl, dbToken) {
         
         container.innerHTML = renderDashboard(posts, slug, drafts, blog.id);
         setupDashboardEvents(container, slug, dbUrl, dbToken, blog.id);
+        showToast(`Welcome back!`, 'success');
       } catch (err) {
-        document.getElementById('lb-login-error').innerHTML = `<div class="lb-error">${err.message || 'Login failed'}</div>`;
+        document.getElementById('lb-login-error').innerHTML = '<div class="lb-error">Login failed. Please try again or check your internet connection.</div>';
+      } finally {
+        setButtonLoading(submitBtn, false);
       }
     });
   }
@@ -652,7 +793,15 @@ async function setupDashboardEvents(container, blogSlug, dbUrl, dbToken, blogId)
   
   container.querySelectorAll('.lb-delete-post').forEach(btn => {
     btn.addEventListener('click', async () => {
-      if (confirm('Are you sure you want to delete this post?')) {
+      const confirmed = await showModal({
+        title: 'Delete Post',
+        message: 'Are you sure you want to delete this post? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        danger: true
+      });
+      
+      if (confirmed) {
         const { deletePost, getAllPostsForBlog } = window.__lb_db;
         const domain = window.location.hostname;
         await deletePost(actualBlogId, parseInt(btn.dataset.id));
@@ -662,6 +811,7 @@ async function setupDashboardEvents(container, blogSlug, dbUrl, dbToken, blogId)
         const drafts = getLocalDrafts(actualBlogId);
         container.innerHTML = renderDashboard(posts, blogSlug, drafts, actualBlogId);
         setupDashboardEvents(container, blogSlug, dbUrl, dbToken, actualBlogId);
+        showToast('Post deleted', 'success');
       }
     });
   });
@@ -676,14 +826,23 @@ async function setupDashboardEvents(container, blogSlug, dbUrl, dbToken, blogId)
   });
   
   container.querySelectorAll('.lb-delete-draft').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (confirm('Delete this local draft?')) {
+    btn.addEventListener('click', async () => {
+      const confirmed = await showModal({
+        title: 'Delete Draft',
+        message: 'Are you sure you want to delete this local draft?',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        danger: true
+      });
+      
+      if (confirmed) {
         const key = btn.dataset.key;
         localStorage.removeItem(key);
         const posts = postsCache[actualBlogId] || [];
         const drafts = getLocalDrafts(actualBlogId);
         container.innerHTML = renderDashboard(posts, blogSlug, drafts, actualBlogId);
         setupDashboardEvents(container, blogSlug, dbUrl, dbToken, actualBlogId);
+        showToast('Draft deleted', 'success');
       }
     });
   });
@@ -705,6 +864,32 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
   savedIndicator.className = 'lb-saving-indicator';
   savedIndicator.textContent = '';
   saveBtn?.parentNode.insertBefore(savedIndicator, saveBtn.nextSibling);
+  
+  let hasUnsavedChanges = false;
+  let hasBeenSaved = !!postId;
+  
+  const markUnsaved = () => {
+    hasUnsavedChanges = true;
+    savedIndicator.textContent = 'Unsaved';
+    savedIndicator.className = 'lb-saving-indicator saving';
+  };
+  
+  const markSaved = () => {
+    hasUnsavedChanges = false;
+    hasBeenSaved = true;
+    savedIndicator.textContent = 'Saved';
+    savedIndicator.className = 'lb-saving-indicator saved';
+  };
+  
+  const beforeUnloadHandler = (e) => {
+    if (hasUnsavedChanges && !hasBeenSaved) {
+      e.preventDefault();
+      e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      return e.returnValue;
+    }
+  };
+  
+  window.addEventListener('beforeunload', beforeUnloadHandler);
   
   let quillEditor = null;
   
@@ -731,10 +916,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
           }
         });
         
-        quillEditor.on('text-change', () => {
-          savedIndicator.textContent = 'Unsaved';
-          savedIndicator.className = 'lb-saving-indicator saving';
-        });
+        quillEditor.on('text-change', markUnsaved);
       }
     }
   };
@@ -820,33 +1002,36 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       if (!slugInput.dataset.userModified) {
         slugInput.value = titleInput.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       }
-      savedIndicator.textContent = 'Unsaved';
-      savedIndicator.className = 'lb-saving-indicator saving';
+      markUnsaved();
     });
     
     slugInput.addEventListener('input', () => {
       slugInput.dataset.userModified = 'true';
-      savedIndicator.textContent = 'Unsaved';
-      savedIndicator.className = 'lb-saving-indicator saving';
+      markUnsaved();
     });
     
     [excerptInput, categoryInput].forEach(input => {
       if (input) {
-        input.addEventListener('input', () => {
-          savedIndicator.textContent = 'Unsaved';
-          savedIndicator.className = 'lb-saving-indicator saving';
-        });
+        input.addEventListener('input', markUnsaved);
       }
     });
     
-    publishedInput?.addEventListener('change', () => {
-      savedIndicator.textContent = 'Unsaved';
-      savedIndicator.className = 'lb-saving-indicator saving';
-    });
+    publishedInput?.addEventListener('change', markUnsaved);
   }
   
   if (backBtn) {
     backBtn.addEventListener('click', async () => {
+      if (hasUnsavedChanges && !hasBeenSaved) {
+        const confirmed = await showModal({
+          title: 'Unsaved Changes',
+          message: 'You have unsaved changes. Are you sure you want to leave? Your draft will be saved automatically.',
+          confirmText: 'Leave',
+          cancelText: 'Stay',
+          danger: true
+        });
+        if (!confirmed) return;
+      }
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
       stopAutosave();
       const posts = postsCache[blogId] || await getAllPostsForBlog(blogId);
       const drafts = getLocalDrafts(blogId);
@@ -865,11 +1050,13 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       const published = publishedInput?.checked;
       
       if (!title || !slug) {
-        alert('Title and slug are required');
+        showToast('Title and slug are required', 'error');
         return;
       }
       
+      setButtonLoading(saveBtn, true);
       stopAutosave();
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
       
       try {
         const { createPost, updatePost, getAllPostsForBlog } = window.__lb_db;
@@ -890,9 +1077,13 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
         const drafts = getLocalDrafts(blogId);
         container.innerHTML = renderDashboard(posts, blogSlug, drafts, blogId);
         setupDashboardEvents(container, blogSlug, dbUrl, dbToken, blogId);
+        showToast('Post saved successfully!', 'success');
       } catch (err) {
-        alert(err.message || 'Failed to save post');
+        showToast(err.message || 'Failed to save post', 'error');
         startAutosave();
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+      } finally {
+        setButtonLoading(saveBtn, false);
       }
     });
   }
@@ -910,7 +1101,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       };
       
       if (!data.title) {
-        alert('Title is required');
+        showToast('Please enter a title', 'error');
         return;
       }
       
@@ -921,6 +1112,7 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
       localStorage.setItem(draftKey, JSON.stringify(data));
       savedIndicator.textContent = 'Draft saved';
       savedIndicator.className = 'lb-saving-indicator saved';
+      showToast('Draft saved to browser storage', 'success');
       setTimeout(() => {
         savedIndicator.textContent = '';
         savedIndicator.className = 'lb-saving-indicator';

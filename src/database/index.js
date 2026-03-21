@@ -58,7 +58,6 @@ async function execute(sql, args = []) {
   }
 
   const formattedArgs = args.map(convertArg);
-  const columns = extractColumnNames(sql);
 
   const requestBody = {
     requests: [
@@ -88,10 +87,19 @@ async function execute(sql, args = []) {
   }
 
   const result = await response.json();
+  
   const responseResult = result.results?.[0]?.response?.result;
+  const columns = responseResult?.cols || [];
   const rows = responseResult?.rows || [];
   
-  const parsedRows = rows.map(row => parseRow(row, columns));
+  const parsedRows = rows.map(row => {
+    const obj = {};
+    columns.forEach((col, i) => {
+      const cell = row[i];
+      obj[col.name] = cell?.value ?? cell;
+    });
+    return obj;
+  });
   
   return {
     rows: parsedRows,
@@ -113,6 +121,8 @@ export async function ensureTables() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  
+  await execute(`ALTER TABLE accounts ADD COLUMN blog_title TEXT DEFAULT ''`);
   
   await execute(`
     CREATE TABLE IF NOT EXISTS posts (

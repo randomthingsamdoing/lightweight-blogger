@@ -399,7 +399,7 @@ export function renderBlogListing(posts, config = {}) {
     type: 'website',
     blogTitle: config.blogTitle
   });
-  const container = document.getElementById('lb-app') || document.body;
+  const container = document.getElementById('app') || document.body;
   container.innerHTML = renderBlogIndex(posts, config);
 }
 
@@ -420,13 +420,13 @@ export function renderBlogPost(post, config = {}) {
     image: post.image,
     blogTitle: config.blogTitle
   });
-  const container = document.getElementById('lb-app') || document.body;
+  const container = document.getElementById('app') || document.body;
   container.innerHTML = renderPost(post, config);
 }
 
 export function renderLoading() {
   injectStyles();
-  const container = document.getElementById('lb-app') || document.body;
+  const container = document.getElementById('app') || document.body;
   container.innerHTML = `
     <div class="lb-container">
       <div class="lb-loading">
@@ -438,7 +438,7 @@ export function renderLoading() {
 
 export function renderError(message) {
   injectStyles();
-  const container = document.getElementById('lb-app') || document.body;
+  const container = document.getElementById('app') || document.body;
   container.innerHTML = `
     <div class="lb-container">
       <div class="lb-empty">
