@@ -20,16 +20,16 @@ npm install lightweight-blogger
 
 ## Quick Setup
 
-### 1. Add to Your HTML
+### Add to Your HTML
 
 ```html
-<div id="app"></div>
-
 <script type="module">
   import { autoInit } from 'lightweight-blogger';
   autoInit();
 </script>
 ```
+
+That's it! The package automatically creates the container and handles everything else.
 
 ### 2. Create Your Blog
 
