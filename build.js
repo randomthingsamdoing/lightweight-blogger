@@ -25,6 +25,7 @@ async function build() {
     platform: 'browser',
     target: ['es2020'],
     sourcemap: false,
+    external: ['grapesjs'],
   });
   
   // Build minified ES module version
@@ -37,6 +38,7 @@ async function build() {
     platform: 'browser',
     target: ['es2020'],
     sourcemap: false,
+    external: ['grapesjs'],
   });
   
   console.log('Copying TypeScript definitions...');

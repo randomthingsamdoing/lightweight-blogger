@@ -118,11 +118,13 @@ export async function ensureTables() {
       username TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       blog_title TEXT DEFAULT '',
+      template_data TEXT DEFAULT '{}',
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
   
   await execute(`ALTER TABLE accounts ADD COLUMN blog_title TEXT DEFAULT ''`);
+  await execute(`ALTER TABLE accounts ADD COLUMN template_data TEXT DEFAULT '{}'`);
   
   await execute(`
     CREATE TABLE IF NOT EXISTS posts (
@@ -257,4 +259,40 @@ export async function getBlogByDomain(domain) {
 export async function getPost(blogId, slug) {
   const result = await execute('SELECT id, account_id, domain, slug, title, content, excerpt, category, published, created_at, updated_at FROM posts WHERE account_id = ? AND slug = ?', [blogId, slug]);
   return result.rows[0] || null;
+}
+
+// Template operations (stored in accounts table)
+export async function saveTemplate(accountId, templateData) {
+  const data = JSON.stringify({
+    html: templateData.html || '',
+    css: templateData.css || '',
+    components: templateData.components || []
+  });
+  
+  await execute(
+    `UPDATE accounts SET template_data = ? WHERE id = ?`,
+    [data, accountId]
+  );
+  
+  return { account_id: accountId, ...templateData };
+}
+
+export async function getTemplate(accountId) {
+  const result = await execute('SELECT template_data FROM accounts WHERE id = ?', [accountId]);
+  const row = result.rows[0];
+  
+  if (!row || !row.template_data || row.template_data === '{}') {
+    return null;
+  }
+  
+  try {
+    const data = JSON.parse(row.template_data);
+    return {
+      html: data.html || '',
+      css: data.css || '',
+      components: data.components || []
+    };
+  } catch (e) {
+    return null;
+  }
 }

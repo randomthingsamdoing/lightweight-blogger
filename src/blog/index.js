@@ -1051,6 +1051,11 @@ function renderPost(post, config = {}) {
 }
 
 function renderBlogIndex(posts, config = {}) {
+  // If template is provided, use it
+  if (config.template) {
+    return renderWithTemplate(posts, config);
+  }
+  
   return `
     <div class="lb-blog-wrap">
       <nav class="lb-blog-nav">
@@ -1068,6 +1073,107 @@ function renderBlogIndex(posts, config = {}) {
       </footer>
     </div>
   `;
+}
+
+function renderWithTemplate(posts, config = {}) {
+  const { template } = config;
+  
+  if (!template || !template.html) {
+    // Fallback to default rendering
+    return renderBlogIndex(posts, { ...config, template: null });
+  }
+  
+  let html = template.html;
+  let css = template.css || '';
+  
+  // Insert CSS into head
+  if (css) {
+    const styleEl = document.getElementById('lb-template-styles');
+    if (styleEl) {
+      styleEl.textContent = css;
+    } else {
+      const style = document.createElement('style');
+      style.id = 'lb-template-styles';
+      style.textContent = css;
+      document.head.appendChild(style);
+    }
+  }
+  
+  // Render post list inside template
+  // Find the post-content element or insert after first content area
+  const postListHtml = renderPostList(posts, config);
+  
+  // Replace placeholder content with post list
+  html = html.replace(/<p>Your post content will appear here when a visitor views a blog post\.<\/p>/gi, postListHtml);
+  html = html.replace(/<div[^>]*data-lb-element="post-content"[^>]*>.*?<\/div>/gi, `<div class="lb-post-content">${postListHtml}</div>`);
+  
+  // Update blog title and description
+  if (config.blogTitle) {
+    html = html.replace(/Blog Title/gi, config.blogTitle);
+    html = html.replace(/<h1[^>]*>.*?<\/h1>/gi, `<h1>${escapeHtml(config.blogTitle)}</h1>`);
+  }
+  
+  if (config.blogDescription) {
+    html = html.replace(/Blog description goes here/gi, config.blogDescription);
+  }
+  
+  return html;
+}
+
+function renderPostWithTemplate(post, config = {}) {
+  const { template } = config;
+  
+  if (!template || !template.html) {
+    // Fallback to default rendering
+    return renderPost(post, { ...config, template: null });
+  }
+  
+  let html = template.html;
+  let css = template.css || '';
+  
+  // Insert CSS into head
+  if (css) {
+    const styleEl = document.getElementById('lb-template-styles');
+    if (styleEl) {
+      styleEl.textContent = css;
+    } else {
+      const style = document.createElement('style');
+      style.id = 'lb-template-styles';
+      style.textContent = css;
+      document.head.appendChild(style);
+    }
+  }
+  
+  // Replace placeholders with post content
+  if (post.title) {
+    html = html.replace(/Post Title/gi, escapeHtml(post.title));
+    html = html.replace(/<h1[^>]*class="lb-post-title"[^>]*>.*?<\/h1>/gi, `<h1 class="lb-post-title">${escapeHtml(post.title)}</h1>`);
+  }
+  
+  if (post.content) {
+    html = html.replace(/<p>Your post content will appear here when a visitor views a blog post\.<\/p>/gi, post.content);
+    html = html.replace(/<div[^>]*data-lb-element="post-content"[^>]*>.*?<\/div>/gi, `<div class="lb-post-content">${post.content}</div>`);
+  }
+  
+  if (post.createdAt) {
+    const dateStr = new Date(post.createdAt).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    html = html.replace(/Published: Date/gi, `Published: ${dateStr}`);
+  }
+  
+  if (post.category) {
+    html = html.replace(/Category: Name/gi, `Category: ${escapeHtml(post.category)}`);
+  }
+  
+  if (config.blogTitle) {
+    html = html.replace(/Blog Title/gi, config.blogTitle);
+    html = html.replace(/Blog Name/gi, config.blogTitle);
+  }
+  
+  return html;
 }
 
 function injectStyles() {
@@ -1112,7 +1218,13 @@ export function renderBlogPost(post, config = {}) {
     blogTitle: config.blogTitle
   });
   const container = config.container || document.getElementById('app') || document.body;
-  container.innerHTML = renderPost(post, config);
+  
+  // Use template rendering if template is provided
+  if (config.template) {
+    container.innerHTML = renderPostWithTemplate(post, config);
+  } else {
+    container.innerHTML = renderPost(post, config);
+  }
 }
 
 export function renderLoading(config = {}) {

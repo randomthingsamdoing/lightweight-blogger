@@ -177,13 +177,24 @@ async function initBlog(options = {}) {
     const { injectSitemapLink, injectAlternateLinks } = await import('./blog/seo.js');
     await initDatabase({ dbUrl, dbToken });
     
-    const { getPostsByDomain, getPostByDomainAndSlug, getBlogByDomain } = window.__lb_db;
+    const { getPostsByDomain, getPostByDomainAndSlug, getBlogByDomain, getTemplate } = window.__lb_db;
     const path = window.location.pathname;
     const domain = window.location.hostname;
     const siteUrl = window.location.origin;
     
     const blogInfo = await getBlogByDomain(domain);
     const blogTitle = blogInfo?.blog_title || blogInfo?.username || 'Blog';
+    const blogId = blogInfo?.id;
+    
+    // Fetch active template if blog exists
+    let template = null;
+    if (blogId) {
+      try {
+        template = await getTemplate(blogId);
+      } catch (e) {
+        console.log('[lb] No template found, using default');
+      }
+    }
     
     injectSitemapLink({ siteUrl, blogPath });
     injectAlternateLinks({ siteUrl, blogPath });
@@ -220,7 +231,7 @@ async function initBlog(options = {}) {
         createdAt: p.created_at,
         updatedAt: p.updated_at
       }));
-      renderBlogListing(mapped, { blogPath, page, postsPerPage, totalPosts, blogTitle, container });
+      renderBlogListing(mapped, { blogPath, page, postsPerPage, totalPosts, blogTitle, container, template });
       applyTheme();
       revealContainer();
     } else {
@@ -247,7 +258,7 @@ async function initBlog(options = {}) {
             category: fullPost.category,
             createdAt: fullPost.created_at,
             updatedAt: fullPost.updated_at
-          }, { blogPath, blogTitle, container });
+          }, { blogPath, blogTitle, container, template });
           applyTheme();
           revealContainer();
         } else {
@@ -475,6 +486,186 @@ const ADMIN_STYLES = `
   .lb-btn { padding: 0.5625rem 1rem; }
   .lb-toast { left: 1rem; right: 1rem; bottom: 1rem; }
 }
+
+/* Template Builder Styles */
+.lb-builder-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  background: #f8fafc;
+}
+
+.lb-builder-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0.5rem;
+}
+
+.lb-builder-toolbar-left,
+.lb-builder-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lb-toolbar-btn {
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+}
+
+.lb-toolbar-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.lb-builder-divider {
+  width: 1px;
+  height: 20px;
+  background: #e2e8f0;
+  margin: 0 0.25rem;
+}
+
+.lb-builder-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.lb-builder-sidebar {
+  width: 280px;
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.lb-builder-panel {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lb-builder-panel h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.lb-builder-blocks,
+.lb-builder-styles,
+.lb-builder-traits,
+.lb-builder-layers {
+  padding: 0.5rem;
+  min-height: 100px;
+}
+
+.lb-builder-canvas {
+  flex: 1;
+  overflow: hidden;
+}
+
+#gjs-editor {
+  height: 100%;
+}
+
+.lb-builder-inspector {
+  width: 260px;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* GrapesJS overrides */
+.gjs-cv-canvas {
+  background: #f8fafc !important;
+}
+
+.gjs-block {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  padding: 0.5rem !important;
+  margin: 0.25rem !important;
+  background: #fff !important;
+  cursor: grab !important;
+  transition: all 0.2s !important;
+}
+
+.gjs-block:hover {
+  border-color: var(--lb-accent) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.gjs-one-bg {
+  background-color: #fff !important;
+}
+
+.gjs-two-color {
+  color: #1e293b !important;
+}
+
+.gjs-sm-sector .gjs-sm-title {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.gjs-layer-name {
+  color: #1e293b !important;
+}
+
+.gjs-layer-vis {
+  color: #64748b !important;
+}
+
+.gjs-clm-tag {
+  background: var(--lb-accent) !important;
+  color: #000 !important;
+}
+
+.gjs-pn-panels {
+  background: #fff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.gjs-pn-btn {
+  color: #334155 !important;
+}
+
+.gjs-pn-btn:hover {
+  background: #f8fafc !important;
+}
+
+.gjs-off-prv {
+  background: #f8fafc !important;
+}
+
+.gjs-selected {
+  outline: 2px solid var(--lb-accent) !important;
+  outline-offset: 1px;
+}
+
+.gjs-resizer-h {
+  background: var(--lb-accent) !important;
+}
+
+.gjs-resizer-v {
+  background: var(--lb-accent) !important;
+}
 `;
 
 function injectStyles() {
@@ -623,6 +814,13 @@ function renderDashboard(posts, blogSlug, drafts = [], blogId = null) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <button class="lb-btn lb-btn-ghost" id="lb-template-builder" title="Template Builder">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="9" y1="21" x2="9" y2="9"></line>
             </svg>
           </button>
           <button class="lb-btn lb-btn-primary" id="lb-new-post">+ New Post</button>
@@ -996,6 +1194,14 @@ async function setupDashboardEvents(container, blogSlug, dbUrl, dbToken, blogId)
       clearSession();
       container.innerHTML = renderLoginForm();
       setupLoginFormEvents(container, dbUrl, dbToken);
+    });
+  }
+  
+  const templateBuilderBtn = container.querySelector('#lb-template-builder');
+  if (templateBuilderBtn) {
+    templateBuilderBtn.addEventListener('click', () => {
+      container.innerHTML = renderTemplateBuilder();
+      setupTemplateBuilderEvents(container, dbUrl, dbToken, actualBlogId, blogSlug);
     });
   }
   
@@ -1386,7 +1592,82 @@ function setupEditorEvents(container, blogSlug, dbUrl, dbToken, blogId, postId =
   return null;
 }
 
+// Template Builder functions
+function renderTemplateBuilder() {
+  injectStyles();
+  return `
+    <div class="lb-admin" style="height: 100vh; display: flex; flex-direction: column;">
+      <header class="lb-admin-header">
+        <h1>Template Builder</h1>
+        <nav class="lb-admin-nav">
+          <button class="lb-btn lb-btn-secondary" id="lb-back-to-dashboard">← Back to Dashboard</button>
+        </nav>
+      </header>
+      <main class="lb-builder-container" style="flex: 1; overflow: hidden;">
+        <div id="lb-template-builder-root" style="height: 100%;"></div>
+      </main>
+    </div>
+  `;
+}
 
+async function setupTemplateBuilderEvents(container, dbUrl, dbToken, blogId, blogSlug) {
+  const session = getSession();
+  const actualBlogId = blogId || session?.blogId;
+  
+  // Import template builder module dynamically
+  const templateBuilder = await import('./template-builder/index.js');
+  
+  const builderRoot = container.querySelector('#lb-template-builder-root');
+  
+  // Initialize the editor
+  const editor = await templateBuilder.initTemplateBuilder(builderRoot, {
+    onSave: async (templateData) => {
+      try {
+        const { saveTemplate } = window.__lb_db;
+        
+        // Save template to account
+        await saveTemplate(actualBlogId, {
+          html: templateData.html,
+          css: templateData.css,
+          components: templateData.components
+        });
+        
+        showToast('Template saved successfully!', 'success');
+      } catch (error) {
+        console.error('Failed to save template:', error);
+        showToast('Failed to save template: ' + error.message, 'error');
+      }
+    }
+  });
+  
+  // Load existing template if any
+  try {
+    const { getTemplate } = window.__lb_db;
+    const existingTemplate = await getTemplate(actualBlogId);
+    
+    if (existingTemplate && existingTemplate.html) {
+      templateBuilder.loadTemplate({
+        html: existingTemplate.html,
+        css: existingTemplate.css,
+        components: existingTemplate.components
+      });
+    }
+  } catch (error) {
+    console.log('No existing template found, using default');
+  }
+  
+  // Setup back button
+  const backBtn = container.querySelector('#lb-back-to-dashboard');
+  if (backBtn) {
+    backBtn.addEventListener('click', async () => {
+      const posts = postsCache[actualBlogId] || [];
+      const drafts = getLocalDrafts(actualBlogId);
+      container.innerHTML = renderDashboard(posts, blogSlug, drafts, actualBlogId);
+      setupDashboardEvents(container, blogSlug, dbUrl, dbToken, actualBlogId);
+      templateBuilder.destroyEditor();
+    });
+  }
+}
 
 export function autoInit(options = {}) {
   console.log('[lb] autoInit called', window.location.pathname);

@@ -1,7 +1,7 @@
 {
   "name": "lightweight-blogger",
-  "version": "0.0.1",
-  "description": "A lightweight, plug-and-play blogging system for static websites with admin dashboard and SEO features",
+  "version": "0.0.2",
+  "description": "A lightweight, plug-and-play blogging system for static websites with admin dashboard, SEO features, and template builder",
   "main": "dist/lightweight-blogger.js",
   "module": "dist/lightweight-blogger.js",
   "types": "dist/index.d.ts",
@@ -36,12 +36,18 @@
     "static-site",
     "seo",
     "rss",
-    "sitemap"
+    "sitemap",
+    "template-builder",
+    "drag-and-drop"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@libsql/client": "^0.6.0",
+    "grapesjs": "^0.22.14",
     "marked": "^12.0.0"
+  },
+  "peerDependencies": {
+    "grapesjs": "^0.22.14"
   }
 }
